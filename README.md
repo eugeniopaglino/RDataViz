@@ -1,4 +1,6 @@
-Introduction to Data Visualization with `ggplot` workshop for SICSS-2023 students at the University of Pennsylvania. You can see the slides [here](https://htmlpreview.github.io/?https://github.com/eugeniopaglino/RDataViz/blob/main/SICSSDataViz.html)
+# Introduction to Data Visualization with `ggplot` workshop for SICSS-2023 students at the University of Pennsylvania. 
+
+You can see the slides [here](https://htmlpreview.github.io/?https://github.com/eugeniopaglino/RDataViz/blob/main/SICSSDataViz.html)
 
 If you want to dowload all of this repository's code to your own machine, you should open a Terminal sessions (if on Mac) or a Command Prompt (if on Windows) and type the following commands:
 

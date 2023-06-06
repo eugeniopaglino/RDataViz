@@ -1,5 +1,5 @@
 ---
-title: "Basics of Data Visualization In R"
+title: "Basics of Data Visualization In R - SICSS-Penn 2023"
 author: "Eugenio Paglino"
 output: 
   revealjs::revealjs_presentation:
