@@ -45,9 +45,16 @@ library(kableExtra)
 library(ggthemes)
 library(patchwork)
 library(colorspace)
+library(ggrepel)
 library(ggridges)
+library(here)
 library(tidyverse)
 ```
+
+```{r}
+i_am('SICSSDataViz.Rmd')
+```
+
 
 ### Building Visualization with `ggplot2`
 
@@ -145,12 +152,50 @@ ggplot(iris) +
 
 ---
 
-There are many different geometries you can use:
+Here a fancier violin plot by species.
+
+```{r}
+ggplot(iris) +
+  geom_violin(mapping=aes(x=Species,y=Sepal.Length),
+              color='black',fill='white')
+```
+
+This graph is also useful to show the difference between specifying `color` and `fill` within a call to `aes` and outside of the call.
+
+---
+
+When we specify `color` or `fill` within `aes`, `ggplot` expects a variable and tries to map this variable to the desired aesthetic. Here is an example:
+
+```{r}
+ggplot(iris) +
+  geom_violin(mapping=aes(x=Species,y=Sepal.Length,
+                          color='black',fill='white'))
+```
+
+Here `ggplot` tried converting 'white' and 'black' into variables and, under the hood, created two temporary variables with the same number of values as there are rows in `iris` assigning the value 'white' to one and 'black' to the other. This behaviour can be exploited to avoid having to reshape our data.
+
+---
+
+Here is an example of how we can trick `ggplot` into letting you use data in the "wrong" shape.
+
+```{r}
+iris %>%
+  ggplot() +
+  geom_violin(mapping=aes(x='Sepal Lenght',y=Sepal.Length,fill='Sepal Lenght')) +
+  geom_violin(mapping=aes(x='Sepal Width',y=Sepal.Width,fill='Sepal Width')) +
+  labs(x='',y='Centimiters',fill='')
+```
+
+Ideally, `ggplot` would want us to reshape the data into long format where Sepal Length and Sepal Width are values of a new variable `type` and the corresponding values are stored into a new variable called `value`.
+
+---
+
+Beyond what we have seen so far, there are many different geometries you can use:
 
 - Lines: `geom_line`
 - Boxplots: `geom_boxplot`
 - Densities: `geom_density`
-- Maps: `geom_map`
+- Maps: `geom_sf`
 - Error Bars: `geom_errorbar`
 - Uncertainty Intervals: `geom_ribbon`
 
@@ -207,6 +252,8 @@ ggplot(data=iris) +
 
 ---
 
+### Maps in `ggplot` 
+
 Many datasets of interest come with some geographical information attached. It would be nice to show this dimension explicitly in our plots and luckily `ggplot` makes it straightforward.
 
 First, we use the `USABoundaries` package to download a boundary file for US states.
@@ -241,6 +288,8 @@ As for the other types of plots, we can set the border color and  width, or even
 
 ---
 
+### Finding the Right Geometry and Further Customization
+
 Sometimes, it might seem that `ggplot` lacks the type of geometry we want. Here is an example. Suppose we want to build a bar chart in which values larger than 1 are represented by bars that raise above the vertical line `y=1` axis and values below 1 are represented by bars that raise downward from such vertical lines (this makes sense if the values are ratios). We would quickly realize that `geom_bar` or `geom_col` do not allow this behavior.
 
 This situations are when we need to be creative. We can start by thinking that a bar is not very different from a segment with a large width. Once we've made this connection, it's trivial to realize that what we want are segments that start at `y=1` and end at some value `yend`, whether this value is larger or smaller than 1. With the appropriate width the result will be indistinguishable from a bar chart.
@@ -261,6 +310,59 @@ The `scales` package implements many common transformation and also allows you t
 
 ---
 
+### Making Your Plots more Informative with Annotations
+
+Often, integrating text annotations into your plots can help making them clearer. Here is a simple example:
+
+```{r}
+ggplot(mtcars, aes(x = wt, y = mpg)) + 
+  geom_point() + 
+  annotate("text", x = 4, y = 25, label = "Some text")
+```
+
+---
+
+This can also be used to highlight some areas:
+
+```{r}
+ggplot(mtcars, aes(x = wt, y = mpg)) + 
+  geom_point() + 
+  annotate("text", x = 4, y = 25, label = "Some text") +
+  annotate("rect", xmin = 3, xmax = 4.2, ymin = 12, ymax = 21,
+  alpha = .2)
+```
+
+---
+
+The `annotate` function is very flexible when it comes to the type of annotation but is not well suited when elements on the annotation depend on the values of some data points. In these cases, we can use `geom_text`, `geom_label`, or `geom_rect`. Here is an example:
+
+```{r, fig.width=10, fig.height=4}
+ggplot(mtcars, aes(wt, mpg, label = rownames(mtcars))) +
+  geom_text()
+```
+
+---
+
+### Saving Plots
+
+`ggplot` has a built-in function (`ggsave`) to save plots to different graphic formats "eps", "ps", "pdf", "jpeg", "tiff", "png", "bmp", "svg", and others. You can set the size of the resulting image. By default, `ggsave` saves the last plot you displayed. Here is an example:
+
+```{r}
+ggsave(filename=here('figures','examplePlot.svg'),plot=plot)
+```
+
+If this is not flexible enough, you can use R's built-in graphic devices (less intuitive). Here is an example:
+
+```{r, results='hide'}
+pdf(here('figures','examplePlot.pdf'))
+plot
+dev.off()
+```
+
+There are devices for most commonly used graphic types.
+
+---
+
 ### Augmenting `ggplot` with other Packages
 
 The list of functionalities provided by `ggplot` is impressive but sooner or later you will need to do something that goes beyond what this package can do. Luckily there is a high chance that someone encountered the same issue before you and coded the solution as a package. Here is a (non exhaustive) list of such packages:
@@ -269,6 +371,7 @@ The list of functionalities provided by `ggplot` is impressive but sooner or lat
  - `ggh4x`: more faceting option including nested facets! Very useful.
  - `geofacet`: provides geofaceting functionalities for `ggplot`.
  - `ggridges`: build amazing ridge plots.
+ - `ggrepel`: smart labels.
  - `colorspace`: select palettes with desirable properties for your plots.
 
 ---
@@ -348,6 +451,26 @@ The main issue is that this type of plot is harder to read with discrete data (b
 
 ---
 
+Remember our plot to illustrate `geom_text`? It was not very pretty because some of the labels were overlapping. Luckily the `ggrepel` package has just the function we need in these cases.
+
+```{r}
+ggplot(mtcars, aes(wt, mpg, label = rownames(mtcars))) +
+  geom_point() +
+  geom_text_repel(min.segment.length = 0)
+```
+
+---
+
+Notice that not all of the points have been labeled. We can set how much overlap is tolerable if we want all the labels to appear.
+
+```{r, fig.width=10, fig.height=4}
+ggplot(mtcars, aes(wt, mpg, label = rownames(mtcars))) +
+  geom_point() +
+  geom_text_repel(min.segment.length = 0, max.overlaps = Inf)
+```
+
+---
+
 ### A Few Remarks on the Use of Color
 
 Selecting the right palette for a plot is probably one of the hardest part of building a visualization. Luckily, the R ecosystem offers many packages to help you in this journey. The one I like the most, because of it's completeness and ease of use, is `colorspace`.
@@ -408,3 +531,23 @@ If you clone the repository where I uploaded this presentation's material you'll
 You have many different output types you can choose from: html, markdown, doc, pdf (through LaTex), and others.
 
 You can learn more about RMarkdown functionalities [here](https://rmarkdown.rstudio.com/lesson-1.html).
+
+--- 
+
+### What about Tables?
+
+<img src="figures/gt_promo.png" alt="drawing" width="900"/>
+
+---
+
+### Time to Practice!
+
+You are going to produce two graphics using data from [this project](https://osf.io/9nrtx/?view_only=). The goal of the project was to estimate monthly excess deaths during the COVID-19 pandemic for each county in the US. 
+
+Navigate to data/output/estimates. Then download the files `estimatesStateMonths.csv` and `estimatesPYears.csv`. The first file has estimates aggregated by state and month, the second file has estimates aggregated by county and "pandemic" year (1st: Mar 2020-Feb 2021, 2nd: Mar 2021-Feb 2022, 3rd Mar 2022 - Aug 2022).
+
+You can be creative but ideally you would build a first visualization focusing on the **geographical dimension** using the county level data and a second one focusing on the **temporal dimension** using the state level data.
+
+If you are stuck, we are happy to help but remember that chatGPT is very good at coding! ([here](https://chat.openai.com/share/019f43d2-4ab8-456e-8d11-7d0046f49d2f) is an example).
+
+When you are satisfied with your result, you can upload your work to [this doc](https://docs.google.com/document/d/1X9rW_I_HZNyrJi963B3PoRS7WmVTfd9j59Wjn_jCMVk/edit?usp=sharing). Docs not like pdf images so you should save it to svg or png instead. Screenshots are also ok!
